@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pyros · Automação de DMs</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f7f9; --surface:#fff; --surface-2:#f0f4f6; --border:#dfe6ea; --text:#13212b; --muted:#5d6f7b;
+  --brand:#0a8fb0; --brand-ink:#fff; --brand-soft:#e3f4f8; --danger:#c8372d; --danger-soft:#fdecea;
+  --ok:#1f8a4c; --ok-soft:#e5f5ec; --warn:#a86a00; --warn-soft:#fff4dc;
+  --bubble-in:#efefef; --bubble-out:#3c5cff; --phone:#fff; --phone-text:#111;
+  --shadow:0 1px 2px rgba(16,30,40,.06),0 4px 16px rgba(16,30,40,.06); --r:12px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1519; --surface:#152027; --surface-2:#1b2830; --border:#263640; --text:#e4edf1; --muted:#8ea2ad;
+    --brand:#2cb3d6; --brand-ink:#04161c; --brand-soft:#123440; --danger:#f0675c; --danger-soft:#3a1b19;
+    --ok:#4cc47f; --ok-soft:#14301f; --warn:#e0a635; --warn-soft:#352812;
+    --bubble-in:#262626; --phone:#000; --phone-text:#f5f5f5; --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;line-height:1.25}
+.hidden{display:none!important}
+
+/* topo */
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--border)}
+.top{max-width:1360px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700}
+.logo i{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#0ec5d8,#0a6fb0);display:grid;place-items:center;color:#fff;font-style:normal;font-size:15px}
+.tabs{display:flex;gap:4px}
+.tab{border:0;background:none;padding:7px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:500}
+.tab[aria-selected=true]{background:var(--brand-soft);color:var(--brand)}
+.spacer{flex:1}
+.status{font-size:13px;color:var(--muted)}
+.status.dirty{color:var(--warn);font-weight:600}
+
+.btn{border:1px solid var(--border);background:var(--surface);padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.primary:disabled{opacity:.5;cursor:default}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger{color:var(--danger)}
+.btn.danger.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+main{max-width:1360px;margin:0 auto;padding:20px 16px 80px}
+
+/* login */
+.login{max-width:380px;margin:12vh auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow)}
+.login h1{font-size:20px;margin-bottom:6px}
+.login p{color:var(--muted);margin:0 0 18px}
+
+/* layout campanhas */
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:1150px){.grid{grid-template-columns:220px minmax(0,1fr)}.preview-col{grid-column:1/-1}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.list{padding:8px;position:sticky;top:70px}
+@media (max-width:760px){.list{position:static}}
+.list h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 8px 8px}
+.item{width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;cursor:pointer;display:flex;gap:9px;align-items:flex-start}
+.item:hover{background:var(--surface-2)}
+.item[aria-current=true]{background:var(--brand-soft)}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
+.dot.on{background:var(--ok)}
+.item b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item small{color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.item>span{min-width:0}
+.list .btn{width:100%;margin-top:6px}
+
+.editor{display:flex;flex-direction:column;gap:16px}
+.sec{padding:18px 20px}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-h .n{width:24px;height:24px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.sec-h h3{font-size:15px}
+.sec-h p{margin:0;color:var(--muted);font-size:13px}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+label.l{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:13px;margin-bottom:5px}
+label.l span{font-weight:400;color:var(--muted);font-size:12px}
+label.l span.over{color:var(--danger);font-weight:600}
+.hint{color:var(--muted);font-size:12px;margin-top:4px}
+input[type=text],input[type=url],input[type=password],textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 11px;outline:none}
+textarea{resize:vertical;min-height:72px}
+input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+.title-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.title-row input{flex:1;min-width:200px;font-size:17px;font-weight:600}
+
+/* toggle */
+.tg{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none;font-weight:500}
+.tg input{position:absolute;opacity:0;pointer-events:none}
+.tg i{width:38px;height:22px;border-radius:99px;background:var(--border);position:relative;transition:.15s;flex:none}
+.tg i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tg input:checked+i{background:var(--ok)}
+.tg input:checked+i::after{left:19px}
+.tg input:focus-visible+i{outline:2px solid var(--brand);outline-offset:2px}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:6px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:text}
+.chips:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--brand-soft);color:var(--brand);font-weight:600;border-radius:7px;padding:3px 4px 3px 9px}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;padding:0 4px;font-size:15px;line-height:1;opacity:.7}
+.chip button:hover{opacity:1}
+.chips input{border:0!important;box-shadow:none!important;flex:1;min-width:140px;padding:4px!important;background:none}
+
+.replies{display:flex;flex-direction:column;gap:8px}
+.reply{display:flex;gap:6px;align-items:flex-start}
+.reply input{flex:1}
+
+.tester{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--surface-2)}
+.tester input{flex:1;min-width:180px}
+.badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.no{background:var(--danger-soft);color:var(--danger)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+
+.sub{border-left:3px solid var(--brand-soft);padding-left:14px;margin:4px 0 14px}
+.errors{background:var(--danger-soft);color:var(--danger);border-radius:var(--r);padding:12px 16px}
+.errors ul{margin:6px 0 0;padding-left:18px}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-weight:500}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* preview */
+.preview-col{position:sticky;top:70px}
+@media (max-width:1150px){.preview-col{position:static}}
+.phone{background:var(--phone);color:var(--phone-text);border:1px solid var(--border);border-radius:26px;padding:14px 12px;max-width:340px;margin:0 auto;box-shadow:var(--shadow)}
+.ph-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 4px 10px;display:flex;justify-content:space-between}
+.cm{display:flex;gap:8px;margin:0 4px 10px;font-size:13px}
+.cm.r{margin-left:34px}
+.av{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,#f9a03f,#e3367a)}
+.av.pyros{background:linear-gradient(135deg,#FF5722,#1A1A1A)}
+.cm b{font-weight:600;margin-right:4px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.chat{display:flex;flex-direction:column;gap:6px;padding:0 2px;font-size:13.5px}
+.b{max-width:82%;padding:8px 12px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}
+.b.in{background:var(--bubble-in);align-self:flex-start;border-bottom-left-radius:5px}
+.b.out{background:var(--bubble-out);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+.qr{align-self:flex-end;border:1px solid var(--bubble-out);color:var(--bubble-out);border-radius:99px;padding:5px 12px;font-weight:600;font-size:12.5px}
+@media (prefers-color-scheme:dark){.qr{color:#8da0ff;border-color:#8da0ff}}
+.tpl{align-self:flex-start;max-width:82%;border-radius:18px;overflow:hidden;background:var(--bubble-in)}
+.tpl .tx{padding:9px 12px;white-space:pre-wrap}
+.tpl .bt{border-top:1px solid rgba(127,127,127,.25);padding:8px 12px;text-align:center;font-weight:600;color:var(--bubble-out)}
+@media (prefers-color-scheme:dark){.tpl .bt{color:#8da0ff}}
+.sys{align-self:center;font-size:11px;color:var(--muted);margin:4px 0}
+.prev-note{text-align:center;color:var(--muted);font-size:12px;margin-top:10px}
+
+/* leads */
+.leads-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.leads-h h2{font-size:18px;margin-right:auto}
+.leads-h input{max-width:260px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{padding:14px 16px}
+.kpi small{color:var(--muted);display:block;font-size:12px}
+.kpi b{font-size:24px;font-weight:700}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+td.c{max-width:280px}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+
+<section id="vLogin" class="login hidden">
+  <h1>Automação de DMs · Pyros</h1>
+  <p>Digite a senha do painel para continuar.</p>
+  <form id="fLogin">
+    <div class="field"><input id="iSenha" type="password" placeholder="Senha" autocomplete="current-password" required></div>
+    <button class="btn primary" style="width:100%">Entrar</button>
+    <p id="loginErr" class="hint" style="color:var(--danger);margin-top:10px"></p>
+  </form>
+</section>
+
+<div id="vApp" class="hidden">
+  <header>
+    <div class="top">
+      <div class="logo"><i>A</i> Automação de DMs</div>
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="camp" aria-selected="true">Campanhas</button>
+        <button class="tab" role="tab" data-tab="leads" aria-selected="false">Leads</button>
+        <button class="tab" role="tab" data-tab="conexao" aria-selected="false">Conexão</button>
+      </nav>
+      <div class="spacer"></div>
+      <span id="saveStatus" class="status"></span>
+      <button id="bSalvar" class="btn primary" disabled>Salvar alterações</button>
+      <button id="bSair" class="btn ghost sm">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="noStore" class="banner hidden">⚠️ O banco de dados (Upstash Redis) ainda não está conectado na Vercel. Você pode ver as campanhas, mas não vai conseguir salvar.</div>
+
+    <!-- CAMPANHAS -->
+    <section id="tCamp">
+      <div id="errBox" class="errors hidden" style="margin-bottom:16px"></div>
+      <div class="grid">
+        <aside class="card list">
+          <h2>Campanhas</h2>
+          <div id="lista"></div>
+          <button id="bNova" class="btn">+ Nova campanha</button>
+        </aside>
+
+        <div id="editor" class="editor"></div>
+
+        <aside class="preview-col">
+          <div class="phone" id="preview"></div>
+          <div class="prev-note">Prévia de como a pessoa vai ver</div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- LEADS -->
+    <section id="tLeads" class="hidden">
+      <div class="leads-h">
+        <h2>Leads do Instagram</h2>
+        <input id="iBusca" type="text" placeholder="Buscar @ ou comentário">
+        <button id="bAtualizar" class="btn">Atualizar</button>
+        <button id="bCsv" class="btn primary">Baixar planilha</button>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="card tbl-wrap" id="tabela"></div>
+    </section>
+
+    <!-- CONEXÃO -->
+    <section id="tConexao" class="hidden" style="max-width:760px">
+      <div class="leads-h"><h2>Conexão com o Instagram</h2><button id="bRecarregarCx" class="btn">Verificar</button></div>
+      <div class="card sec" id="cxStatus"><div class="empty">Carregando…</div></div>
+
+      <div class="card sec" style="margin-top:16px">
+        <div class="sec-h"><span class="n">1</span><div><h3>Webhook (cole no painel da Meta)</h3><p>Instagram → Configuração da API → Configurar webhooks</p></div></div>
+        <div class="field"><label class="l">URL de callback</label>
+          <div class="reply"><input type="text" id="cxUrl" readonly><button class="btn sm" data-copy="cxUrl">Copiar</button></div></div>
+        <div class="field"><label class="l">Verificar token</label>
+          <div class="reply"><input type="text" id="cxVerify" readonly><button class="btn sm" data-copy="cxVerify">Copiar</button></div></div>
+        <div class="hint">Depois de verificar, assine os campos <b>comments</b>, <b>messages</b> e <b>messaging_postbacks</b>.</div>
+      </div>
+
+      <form class="card sec" id="fCx" style="margin-top:16px" autocomplete="off">
+        <div class="sec-h"><span class="n">2</span><div><h3>Credenciais do app</h3><p>Ficam guardadas só no servidor — nunca aparecem de novo aqui</p></div></div>
+        <div class="field"><label class="l">ID da conta do Instagram <span id="cxIdOk"></span></label>
+          <input type="text" id="iIg" inputmode="numeric" placeholder="Só números — aparece ao lado da conta no painel da Meta"></div>
+        <div class="field"><label class="l">Token de acesso <span id="cxTokOk"></span></label>
+          <input type="password" id="iTok" placeholder="Cole aqui o token gerado no painel da Meta"></div>
+        <div class="field"><label class="l">Instagram app secret <span id="cxSecOk"></span></label>
+          <input type="password" id="iSec" placeholder="Cole aqui a chave secreta do app"></div>
+        <div class="actions"><button class="btn primary" id="bCx">Salvar credenciais</button></div>
+        <p id="cxErr" class="hint" style="color:var(--danger)"></p>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s = '') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = (s = '') => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const temPalavra = (t, p) => new RegExp(`(^|[^a-z0-9])${norm(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`).test(norm(t));
+const nomeVar = t => (t || '').replace(/\{nome\}/g, '@fulana');
+
+const store = {
+  get(k){ try { return localStorage.getItem(k) || '' } catch { return '' } },
+  set(k, v){ try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k) } catch {} },
+};
+
+let token = store.get('pyros_admin');
+let campanhas = [];
+let sel = 0;
+let dirty = false;
+let leads = [];
+
+function toast(msg){
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+
+async function api(path, opt = {}){
+  const r = await fetch(path, { ...opt, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+  if (r.status === 401) { sair(); throw new Error('Senha inválida'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.erro || 'Erro ' + r.status); e.detalhes = j.detalhes; throw e; }
+  return j;
+}
+
+// ---------- login ----------
+$('#fLogin').addEventListener('submit', async e => {
+  e.preventDefault();
+  token = $('#iSenha').value.trim();
+  $('#loginErr').textContent = '';
+  try { await iniciar(); store.set('pyros_admin', token); }
+  catch (err) { $('#loginErr').textContent = err.message; }
+});
+function sair(){ token = ''; store.set('pyros_admin', ''); $('#vApp').classList.add('hidden'); $('#vLogin').classList.remove('hidden'); }
+$('#bSair').onclick = () => { if (!dirty || confirm('Há alterações não salvas. Sair mesmo assim?')) sair(); };
+
+async function iniciar(){
+  const j = await api('/api/campanhas');
+  campanhas = j.campanhas.map(c => ({ nome: c.nome || c.id, ...c, dm: { ...c.dm } }));
+  $('#noStore').classList.toggle('hidden', j.storeAtivo);
+  $('#vLogin').classList.add('hidden'); $('#vApp').classList.remove('hidden');
+  sel = 0; setDirty(false); renderTudo();
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
+  $('#tCamp').classList.toggle('hidden', b.dataset.tab !== 'camp');
+  $('#tLeads').classList.toggle('hidden', b.dataset.tab !== 'leads');
+  $('#tConexao').classList.toggle('hidden', b.dataset.tab !== 'conexao');
+  if (b.dataset.tab === 'leads') carregarLeads();
+  if (b.dataset.tab === 'conexao') carregarCx();
+});
+
+// ---------- conexão ----------
+function renderCx(s){
+  const ok = (v, t) => `<span class="badge ${v ? 'ok' : 'no'}">${v ? '✓' : '✕'} ${t}</span>`;
+  $('#cxStatus').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      ${ok(s.storeAtivo, 'Banco de dados')}
+      ${ok(s.conta, s.conta ? 'Instagram: @' + esc(s.conta.username) : 'Instagram não conectado')}
+      ${ok(s.appSecret, 'App secret')}
+      ${ok(s.verifyToken, 'Token do webhook')}
+    </div>
+    ${s.erroConta ? `<p class="hint" style="color:var(--danger)">Token salvo, mas o Instagram recusou: ${esc(s.erroConta)}</p>` : ''}
+    ${s.conta && s.conta.account_type && !/BUSINESS|CREATOR|MEDIA_CREATOR/i.test(s.conta.account_type) ? '<p class="hint" style="color:var(--warn)">A conta precisa ser profissional (Business ou Creator).</p>' : ''}`;
+  $('#cxUrl').value = s.webhookUrl;
+  $('#cxVerify').value = s.verifyToken || '(defina WEBHOOK_VERIFY_TOKEN na Vercel)';
+  $('#cxTokOk').innerHTML = s.token ? '<span class="badge ok">salvo</span>' : '';
+  $('#cxIdOk').innerHTML = s.igId ? `<span class="badge ok">${esc(s.igId)}</span>` : '';
+  if (s.webhooksAssinados === false) $('#cxErr').textContent = 'Credenciais salvas, mas a assinatura dos webhooks falhou: ' + (s.erroAssinatura || 'erro desconhecido');
+  $('#cxSecOk').innerHTML = s.appSecret ? '<span class="badge ok">salvo</span>' : '';
+}
+async function carregarCx(){
+  try { renderCx(await api('/api/conexao')); } catch (e) { $('#cxStatus').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+$('#bRecarregarCx').onclick = carregarCx;
+document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => {
+  try { await navigator.clipboard.writeText($('#' + b.dataset.copy).value); toast('Copiado!'); } catch { $('#' + b.dataset.copy).select(); }
+});
+$('#fCx').addEventListener('submit', async e => {
+  e.preventDefault();
+  const token = $('#iTok').value.trim(), appSecret = $('#iSec').value.trim(), igId = $('#iIg').value.trim();
+  $('#cxErr').textContent = '';
+  if (!token && !appSecret && !igId) return;
+  const b = $('#bCx'); b.disabled = true; b.textContent = 'Verificando…';
+  try {
+    renderCx(await api('/api/conexao', { method: 'PUT', body: JSON.stringify({ token, appSecret, igId }) }));
+    $('#iTok').value = ''; $('#iSec').value = ''; $('#iIg').value = ''; toast('Credenciais salvas!');
+  } catch (err) { $('#cxErr').textContent = err.message; }
+  finally { b.disabled = false; b.textContent = 'Salvar credenciais'; }
+});
+
+// ---------- estado ----------
+function setDirty(v){
+  dirty = v;
+  $('#bSalvar').disabled = !v;
+  const s = $('#saveStatus'); s.textContent = v ? '● Alterações não salvas' : ''; s.classList.toggle('dirty', v);
+}
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+const nova = () => ({
+  id: 'c' + Date.now().toString(36), nome: 'Nova campanha', ativa: false, palavras: [], posts: [], exigirSeguir: true,
+  respostasPublicas: ['Te mandei no direct! 📩'],
+  dm: { abertura: 'Oi, {nome}! 💙 Toque no botão abaixo que eu te mando o link agora.', botao: 'Quero o link',
+        naoSegue: 'Quase lá! 😊 Para liberar o link, siga o perfil da Pyros e depois toque em "Já segui".',
+        entrega: 'Prontinho, {nome}! Aqui está o seu link 👇', link: '', tituloLink: 'Acessar' },
+});
+
+function getPath(o, p){ return p.split('.').reduce((a, k) => a?.[k], o); }
+function setPath(o, p, v){ const ks = p.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; }
+
+// ---------- render ----------
+function renderTudo(){ renderLista(); renderEditor(); renderPreview(); }
+
+function renderLista(){
+  $('#lista').innerHTML = campanhas.map((c, i) => `
+    <button class="item" data-i="${i}" aria-current="${i === sel}">
+      <span class="dot ${c.ativa ? 'on' : ''}" title="${c.ativa ? 'Ativa' : 'Pausada'}"></span>
+      <span><b>${esc(c.nome || 'Sem nome')}</b><small>${c.palavras.length ? esc(c.palavras.join(', ')) : 'sem palavras-chave'}</small></span>
+    </button>`).join('') || '<p class="hint" style="padding:8px">Nenhuma campanha ainda.</p>';
+  $('#lista').querySelectorAll('.item').forEach(b => b.onclick = () => { sel = +b.dataset.i; renderTudo(); });
+}
+
+const contador = (v, max) => `<span class="${(v || '').length > max ? 'over' : ''}" data-count="${max}">${(v || '').length}/${max}</span>`;
+
+function renderEditor(){
+  const ed = $('#editor');
+  const c = campanhas[sel];
+  if (!c) { ed.innerHTML = '<div class="card empty">Crie sua primeira campanha em <b>+ Nova campanha</b>.</div>'; return; }
+  const d = c.dm;
+  ed.innerHTML = `
+  <div class="card sec">
+    <div class="title-row">
+      <input type="text" data-k="nome" value="${esc(c.nome)}" aria-label="Nome da campanha" placeholder="Nome da campanha">
+      <label class="tg"><input type="checkbox" data-k="ativa" ${c.ativa ? 'checked' : ''}><i></i><span id="lblAtiva">${c.ativa ? 'Ativa' : 'Pausada'}</span></label>
+    </div>
+  </div>
+
+  <div class="card sec">
+    <div class="sec-h"><span class="n">1</span><div><h3>Gatilho</h3><p>Quando alguém comentar uma destas palavras</p></div></div>
+    <div class="field">
+      <label class="l">Palavras-chave <span>Enter ou vírgula para adicionar</span></label>
+      <div class="chips" id="chips">
+        ${c.palavras.map((p, i) => `<span class="chip">${esc(p)}<button data-rm="${i}" aria-label="Remover ${esc(p)}">×</button></span>`).join('')}
+        <input id="iChip" type="text" placeholder="${c.palavras.length ? '' : 'ex.: QUERO, LINK, EU QUERO'}">
+      </div>
+      <div class="hint">Não diferencia maiúsculas nem acentos. Dispara se o comentário <b>contiver</b> a palavra (ex.: "quero!!! 😍").</div>
+      <div class="tester">
+        <input id="iTeste" type="text" placeholder="Teste: digite um comentário de exemplo">
+        <span id="testeRes"></span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="tg"><input type="checkbox" id="cPosts" ${c.posts.length ? 'checked' : ''}><i></i>Só em posts específicos</label>
+      <div id="postsBox" class="${c.posts.length ? '' : 'hidden'}" style="margin-top:8px">
+        <textarea data-k="posts" data-list rows="2" placeholder="IDs dos posts, um por linha">${esc(c.posts.join('\n'))}</textarea>
+        <div class="hint">Desligado = vale para todos os posts e reels da Pyros.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card sec">
+    <div class="sec-h"><span class="n">2</span><div><h3>Resposta pública no comentário</h3><p>Uma delas é sorteada a cada vez (parece menos robô)</p></div></div>
+    <div class="replies" id="replies">
+      ${c.respostasPublicas.map((r, i) => `<div class="reply"><input type="text" data-rp="${i}" value="${esc(r)}" maxlength="300"><button class="btn sm ghost" data-rprm="${i}" aria-label="Remover">✕</button></div>`).join('')}
+    </div>
+    <button class="btn sm" id="bAddRp" style="margin-top:8px">+ Adicionar variação</button>
+    <div class="hint">Sem nenhuma variação = não responde em público, só manda o direct.</div>
+  </div>
+
+  <div class="card sec">
+    <div class="sec-h"><span class="n">3</span><div><h3>Mensagem no direct</h3><p>Use <b>{nome}</b> para inserir o @ da pessoa</p></div></div>
+    <div class="field">
+      <label class="tg"><input type="checkbox" data-k="linkDireto" ${c.linkDireto ? 'checked' : ''}><i></i>Enviar o link já na 1ª mensagem</label>
+      <div class="hint">${c.linkDireto ? 'A pessoa recebe uma única mensagem, com o botão que abre o link. Não dá para exigir que siga a Pyros nesse modo.' : 'A pessoa recebe a 1ª mensagem e o link só depois de tocar no botão.'}</div>
+    </div>
+    <div class="field">
+      <label class="l">${c.linkDireto ? 'Mensagem' : '1ª mensagem'} ${contador(d.abertura, c.linkDireto ? 640 : 1000)}</label>
+      <textarea data-k="dm.abertura" rows="3">${esc(d.abertura)}</textarea>
+    </div>
+    ${c.linkDireto ? '' : `
+    <div class="field">
+      <label class="l">Texto do botão ${contador(d.botao, 20)}</label>
+      <input type="text" data-k="dm.botao" value="${esc(d.botao)}">
+      <div class="hint">A Meta só permite 1 mensagem por comentário; o link vai depois que a pessoa tocar no botão.</div>
+    </div>
+    <div class="field">
+      <label class="tg"><input type="checkbox" data-k="exigirSeguir" ${c.exigirSeguir ? 'checked' : ''}><i></i>Exigir que siga a Pyros para receber o link</label>
+    </div>
+    <div class="sub ${c.exigirSeguir ? '' : 'hidden'}" id="subSegue">
+      <label class="l">Mensagem para quem ainda não segue ${contador(d.naoSegue, 1000)}</label>
+      <textarea data-k="dm.naoSegue" rows="2">${esc(d.naoSegue)}</textarea>
+      <div class="hint">Vai com o botão <b>"Já segui ✅"</b> para a pessoa tentar de novo.</div>
+    </div>
+    <div class="field">
+      <label class="l">Mensagem com o link ${contador(d.entrega, 640)}</label>
+      <textarea data-k="dm.entrega" rows="2">${esc(d.entrega)}</textarea>
+    </div>`}
+    <div class="row">
+      <div class="field">
+        <label class="l">Link</label>
+        <input type="url" data-k="dm.link" value="${esc(d.link)}" placeholder="https://">
+      </div>
+      <div class="field">
+        <label class="l">Texto do botão do link ${contador(d.tituloLink, 20)}</label>
+        <input type="text" data-k="dm.tituloLink" value="${esc(d.tituloLink)}">
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn sm" id="bDup">Duplicar</button>
+    <button class="btn sm danger" id="bDel">Excluir campanha</button>
+  </div>`;
+  ligarEditor();
+}
+
+function ligarEditor(){
+  const ed = $('#editor');
+  const c = campanhas[sel];
+
+  ed.querySelectorAll('[data-k]').forEach(el => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+    let v = el.type === 'checkbox' ? el.checked : el.value;
+    if (el.hasAttribute('data-list')) v = v.split(/[\s,]+/).filter(Boolean);
+    setPath(c, el.dataset.k, v);
+    const cnt = el.closest('.field, .sub')?.querySelector('[data-count]');
+    if (cnt) { const m = +cnt.dataset.count; cnt.textContent = `${el.value.length}/${m}`; cnt.classList.toggle('over', el.value.length > m); }
+    if (el.dataset.k === 'ativa') $('#lblAtiva').textContent = v ? 'Ativa' : 'Pausada';
+    if (el.dataset.k === 'exigirSeguir') $('#subSegue').classList.toggle('hidden', !v);
+    if (el.dataset.k === 'linkDireto' && v) c.exigirSeguir = false;
+    setDirty(true);
+    if (el.dataset.k === 'linkDireto') { renderTudo(); return; }
+    renderLista(); renderPreview(); testar();
+  }));
+
+  $('#cPosts').onchange = e => {
+    $('#postsBox').classList.toggle('hidden', !e.target.checked);
+    if (!e.target.checked) { c.posts = []; $('#postsBox textarea').value = ''; setDirty(true); }
+  };
+
+  // chips
+  const iChip = $('#iChip');
+  $('#chips').onclick = e => { if (e.target.id === 'chips') iChip.focus(); };
+  const addChips = txt => {
+    const novas = txt.split(',').map(s => s.trim()).filter(Boolean).filter(p => !c.palavras.some(x => norm(x) === norm(p)));
+    if (!novas.length) return false;
+    c.palavras.push(...novas); setDirty(true); renderEditor(); renderLista(); renderPreview(); $('#iChip').focus(); return true;
+  };
+  iChip.onkeydown = e => {
+    if ((e.key === 'Enter' || e.key === ',') && iChip.value.trim()) { e.preventDefault(); addChips(iChip.value); }
+    else if (e.key === 'Backspace' && !iChip.value && c.palavras.length) { c.palavras.pop(); setDirty(true); renderEditor(); renderLista(); renderPreview(); $('#iChip').focus(); }
+  };
+  iChip.onblur = () => { if (iChip.value.trim()) addChips(iChip.value); };
+  ed.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { c.palavras.splice(+b.dataset.rm, 1); setDirty(true); renderEditor(); renderLista(); renderPreview(); });
+
+  // respostas públicas
+  ed.querySelectorAll('[data-rp]').forEach(el => el.oninput = () => { c.respostasPublicas[+el.dataset.rp] = el.value; setDirty(true); renderPreview(); });
+  ed.querySelectorAll('[data-rprm]').forEach(b => b.onclick = () => { c.respostasPublicas.splice(+b.dataset.rprm, 1); setDirty(true); renderEditor(); renderPreview(); });
+  $('#bAddRp').onclick = () => { c.respostasPublicas.push(''); renderEditor(); ed.querySelector(`[data-rp="${c.respostasPublicas.length - 1}"]`).focus(); };
+
+  // teste
+  $('#iTeste').oninput = testar;
+
+  $('#bDup').onclick = () => {
+    const cp = JSON.parse(JSON.stringify(c)); cp.id = 'c' + Date.now().toString(36); cp.nome = c.nome + ' (cópia)'; cp.ativa = false;
+    campanhas.splice(sel + 1, 0, cp); sel++; setDirty(true); renderTudo();
+  };
+  const bDel = $('#bDel');
+  bDel.onclick = () => {
+    if (!bDel.classList.contains('armed')) { bDel.classList.add('armed'); bDel.textContent = 'Clique de novo para confirmar'; setTimeout(() => { bDel.classList.remove('armed'); bDel.textContent = 'Excluir campanha'; }, 3000); return; }
+    campanhas.splice(sel, 1); sel = Math.max(0, sel - 1); setDirty(true); renderTudo();
+  };
+}
+
+function testar(){
+  const el = $('#iTeste'), out = $('#testeRes');
+  if (!el || !out) return;
+  const t = el.value.trim();
+  if (!t) { out.innerHTML = ''; return; }
+  const atual = campanhas[sel];
+  const bate = atual.palavras.some(p => temPalavra(t, p));
+  const primeira = campanhas.find(c => c.ativa && c.palavras.some(p => temPalavra(t, p)));
+  if (bate && primeira && primeira !== atual) out.innerHTML = `<span class="badge warn">Bate, mas a campanha "${esc(primeira.nome)}" vem antes</span>`;
+  else if (bate && !atual.ativa) out.innerHTML = '<span class="badge warn">Bate — mas a campanha está pausada</span>';
+  else if (bate) out.innerHTML = '<span class="badge ok">✓ Dispara esta campanha</span>';
+  else out.innerHTML = '<span class="badge no">Não dispara</span>';
+}
+
+function renderPreview(){
+  const c = campanhas[sel];
+  const p = $('#preview');
+  if (!c) { p.innerHTML = '<div class="empty">—</div>'; return; }
+  const d = c.dm;
+  const palavra = c.palavras[0] || 'QUERO';
+  const rp = c.respostasPublicas.find(Boolean);
+  p.innerHTML = `
+    <div class="ph-t"><span>Comentário no post</span></div>
+    <div class="cm"><span class="av"></span><div><b>fulana</b>${esc(palavra)} 😍</div></div>
+    ${rp ? `<div class="cm r"><span class="av pyros"></span><div><b>pyros.mkt</b>${esc(nomeVar(rp))}</div></div>` : ''}
+    <div class="divider"></div>
+    <div class="ph-t"><span>Direct</span></div>
+    <div class="chat">
+      ${c.linkDireto ? `<div class="tpl"><div class="tx">${esc(nomeVar(d.abertura)) || '<i>mensagem…</i>'}</div><div class="bt">${esc(d.tituloLink || 'Acessar')}</div></div></div>` : `
+      <div class="b in">${esc(nomeVar(d.abertura)) || '<i>1ª mensagem…</i>'}</div>
+      <span class="qr">${esc(d.botao || 'Quero o link')}</span>
+      <div class="b out">${esc(d.botao || 'Quero o link')}</div>
+      ${c.exigirSeguir ? `
+        <span class="sys">se ainda não segue a Pyros:</span>
+        <div class="b in">${esc(nomeVar(d.naoSegue)) || '<i>mensagem…</i>'}</div>
+        <span class="qr">Já segui ✅</span>
+        <div class="b out">Já segui ✅</div>
+        <span class="sys">depois de seguir:</span>` : ''}
+      <div class="tpl"><div class="tx">${esc(nomeVar(d.entrega)) || '<i>mensagem com o link…</i>'}</div><div class="bt">${esc(d.tituloLink || 'Acessar')}</div></div>
+    </div>`}`;
+}
+
+$('#bNova').onclick = () => { campanhas.push(nova()); sel = campanhas.length - 1; setDirty(true); renderTudo(); $('#editor input[data-k=nome]').select(); };
+
+// ---------- salvar ----------
+async function salvar(){
+  const b = $('#bSalvar'); b.disabled = true; b.textContent = 'Salvando…';
+  $('#errBox').classList.add('hidden');
+  try {
+    const j = await api('/api/campanhas', { method: 'PUT', body: JSON.stringify({ campanhas }) });
+    campanhas = j.campanhas; setDirty(false); renderTudo(); toast('Salvo! O bot já está usando a nova versão.');
+  } catch (e) {
+    $('#errBox').innerHTML = `<b>${esc(e.message)}</b>${e.detalhes ? '<ul>' + e.detalhes.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : ''}`;
+    $('#errBox').classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
+    setDirty(true);
+  } finally { b.textContent = 'Salvar alterações'; }
+}
+$('#bSalvar').onclick = salvar;
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (dirty) salvar(); } });
+
+// ---------- leads ----------
+const STATUS = { dm_enviada: ['DM enviada', 'warn'], aguardando_follow: ['Aguardando seguir', 'warn'], link_entregue: ['Link entregue', 'ok'], erro_dm: ['Erro no envio', 'no'] };
+const fmt = s => s ? new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+
+async function carregarLeads(){
+  $('#tabela').innerHTML = '<div class="empty">Carregando…</div>';
+  try { leads = (await api('/api/leads')).leads; renderLeads(); }
+  catch (e) { $('#tabela').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+function renderLeads(){
+  const nomes = Object.fromEntries(campanhas.map(c => [c.id, c.nome]));
+  const q = norm($('#iBusca').value);
+  const vis = leads.filter(l => !q || norm(`${l.username} ${l.comentario}`).includes(q));
+  const n = s => leads.filter(l => l.status === s).length;
+  $('#kpis').innerHTML = [['Total de leads', leads.length], ['Link entregue', n('link_entregue')], ['Aguardando seguir', n('aguardando_follow')], ['Só receberam a DM', n('dm_enviada')]]
+    .map(([t, v]) => `<div class="card kpi"><small>${t}</small><b>${v}</b></div>`).join('');
+  if (!vis.length) { $('#tabela').innerHTML = `<div class="empty">${leads.length ? 'Nada encontrado.' : 'Ainda não há leads. Eles aparecem aqui quando alguém comentar a palavra-chave.'}</div>`; return; }
+  $('#tabela').innerHTML = `<table><thead><tr><th>Perfil</th><th>Campanha</th><th>Status</th><th>Comentário</th><th>Comentou em</th></tr></thead><tbody>${
+    vis.map(l => { const [st, cls] = STATUS[l.status] || [l.status || '—', 'warn'];
+      return `<tr><td>${l.username ? `<a href="https://instagram.com/${encodeURIComponent(l.username)}" target="_blank" rel="noopener">@${esc(l.username)}</a>` : '—'}</td>
+      <td>${esc(nomes[l.campanha] || l.campanha || '—')}</td><td><span class="badge ${cls}">${esc(st)}</span></td>
+      <td class="c">${esc(l.comentario || '')}</td><td>${fmt(l.comentou_em)}</td></tr>`; }).join('')}</tbody></table>`;
+}
+$('#iBusca').oninput = renderLeads;
+$('#bAtualizar').onclick = carregarLeads;
+$('#bCsv').onclick = async () => {
+  const r = await fetch('/api/leads?formato=csv', { headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) return toast('Erro ao baixar');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'leads-pyros-instagram.csv'; a.click();
+};
+
+// ---------- start ----------
+if (token) iniciar().catch(() => sair()); else sair();
+</script>
+</body>
+</html>

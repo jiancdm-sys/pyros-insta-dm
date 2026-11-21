@@ -1,0 +1,11 @@
+{
+  "name": "pyros-insta-dm",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Automação estilo ManyChat: comentário com palavra-chave -> DM no Instagram (Pyros)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node scripts/test-local.js"
+  }
+}
